@@ -1,0 +1,62 @@
+services:
+  matchbox:
+    image: quay.io/poseidon/matchbox:v0.11.0
+    container_name: matchbox
+    command:
+      - -address=0.0.0.0:8080
+      - -rpc-address=0.0.0.0:8081
+      - -log-level=debug
+      - -cert-file=/etc/matchbox/server.crt
+      - -key-file=/etc/matchbox/server.key
+      - -ca-file=/etc/matchbox/ca.crt
+    volumes:
+      - ./matchbox/var/lib/matchbox:/var/lib/matchbox:Z
+      - ./matchbox/etc/matchbox:/etc/matchbox:Z,ro
+    networks:
+      matchbox_net:
+        ipv4_address: 192.168.22.146
+
+  dnsmasq:
+    image: quay.io/poseidon/dnsmasq:v0.5.0-41-g0212fd2
+    container_name: dnsmasq
+    command:
+      - -d
+      - --dhcp-range=192.168.22.150,192.168.22.200
+      - --enable-tftp
+      - --dhcp-match=set:bios,option:client-arch,0
+      - --dhcp-boot=tag:bios,undionly.kpxe
+      - --dhcp-match=set:efi32,option:client-arch,6
+      - --dhcp-boot=tag:efi32,ipxe.efi
+      - --dhcp-match=set:efibc,option:client-arch,7
+      - --dhcp-boot=tag:efibc,ipxe.efi
+      - --dhcp-match=set:efi64,option:client-arch,9
+      - --dhcp-boot=tag:efi64,ipxe.efi
+      - --dhcp-userclass=set:ipxe,iPXE
+      - --tftp-root=/var/lib/tftpboot
+      - --dhcp-boot=tag:ipxe,http://192.168.22.146:8080/boot.ipxe
+      - --address=/matchbox.example.com/192.168.22.146
+      - --log-queries
+      - --log-dhcp
+      - --tftp-no-blocksize
+    ports:
+      - "53:53/udp"
+      - "67:67/udp"
+      - "69:69/udp"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./matchbox/autoexec.ipxe:/var/lib/tftpboot/autoexec.ipxe:ro
+    networks:
+      - matchbox_net
+
+networks:
+  matchbox_net:
+    driver: ipvlan
+    driver_opts:
+      parent: wlp5s0
+      ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: 192.168.22.0/24
+          gateway: 192.168.22.22
+          ip_range: 192.168.22.128/25
