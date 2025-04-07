@@ -53,8 +53,8 @@ openssl verify -CAfile "${TLS_DIR}/ca.crt" "${TLS_DIR}/server.crt"
 mv "${TLS_DIR}/ca.crt" "${TLS_DIR}/server.crt" "${TLS_DIR}/server.key" "${MATCHBOX_ETC_DIR}"
 
 # Generate talosconfig once, before iterating through the nodes and generating their configuration
-talosctl gen secrets --force -o "${TALOS_CONFIG_DIR}/secrets.yaml"
 mkdir -p "${TALOS_CONFIG_DIR}"
+talosctl gen secrets --force -o "${TALOS_CONFIG_DIR}/secrets.yaml"
 talosctl gen config valhalla "https://${FIRST_CP_IP}:6443" \
   --force \
   --with-secrets "${TALOS_CONFIG_DIR}/secrets.yaml" \
